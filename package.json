@@ -1,0 +1,21 @@
+{
+  "name": "shop",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/JunghoSon/node_shop.git",
+  "author": "jhson <jhson@encar.com>",
+  "license": "MIT",
+  "dependencies": {
+    "body-parser": "^1.18.3",
+    "ejs": "^2.6.1",
+    "express": "^4.16.4",
+    "mongodb": "^3.1.12",
+    "mongoose": "4.11.2",
+    "mongoose-plugin-autoinc": "^1.1.9",
+    "morgan": "^1.9.1",
+    "path": "^0.12.7"
+  },
+  "scripts": {
+    "start": "node index"
+  }
+}
