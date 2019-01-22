@@ -16,6 +16,9 @@
     "path": "^0.12.7"
   },
   "scripts": {
-    "start": "node index"
+    "start": "nodemon app"
+  },
+  "devDependencies": {
+    "nodemon": "^1.18.9"
   }
 }

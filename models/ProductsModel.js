@@ -12,5 +12,15 @@ const ProductsSchema = new Schema({
     }
 });
 
+ProductsSchema.virtual('getDate').get(function(){
+    const date = new Date(this.created_at);
+
+    return {
+        year: date.getFullYear(),
+        month: date.getMonth() + 1,
+        day: date.getDate()
+    }
+});
+
 ProductsSchema.plugin(autoIncrement, {model: 'products', field: 'id', startAt: 1});
 module.exports = mongoose.model('products', ProductsSchema);
