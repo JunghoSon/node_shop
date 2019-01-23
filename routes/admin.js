@@ -7,77 +7,91 @@ router.get('/', (req, res) => {
     res.send('admin page');
 });
 
-router.get('/products', (req, res) => {
-    ProductsModel.find({}, (err, results) => {
-        if(err) throw err;
+router.get('/products', async (req, res) => {
+    try{
+        const results = await ProductsModel.find({});
 
         res.render('admin/products', {products: results});
-    });
+    }catch(err){
+        throw err;
+    }
 });
 
 router.get('/products/write', (req, res) => {
     res.render('admin/form', {product: {}});
 });
 
-router.post('/products/write', (req, res) => {
+router.post('/products/write', async (req, res) => {
     const {name, price, description} = req.body;
 
-    const product = new ProductsModel({
-        name, price, description
-    });
-
-    product.save(err => {
-        if(err) throw err;
-        res.redirect('/admin/products');
-    });
-});
-
-router.get('/products/detail/:id', (req, res) => {
-    const {id} = req.params;
-
-    ProductsModel.findOne({id: id}, (err, product) => {
-        if(err) throw err;
-
-        CommentsModel.find({product_id: id}, (err, comments) => {
-            res.render('admin/productDetail', {product, comments});
+    try{
+        const product = new ProductsModel({
+            name, price, description
         });
-    });
+
+        await product.save();
+
+        res.redirect('/admin/products');
+    }catch(err){
+        throw err;
+    }
 });
 
-router.get('/products/edit/:id', (req, res) => {
+router.get('/products/detail/:id', async (req, res) => {
     const {id} = req.params;
 
-    ProductsModel.findOne({id: id}, (err, product) => {
-        if(err) throw err;
-        res.render('admin/form', {product: product});
-    });
+    try{
+        const product = await ProductsModel.findOne({id: id});
+        const comments = await CommentsModel.find({product_id: id});
+
+        res.render('admin/productDetail', {product, comments});
+    }catch(err){
+        throw err;
+    }
 });
 
-router.post('/products/edit/:id', (req, res) => {
+router.get('/products/edit/:id', async (req, res) => {
+    const {id} = req.params;
+
+    try{
+        const product = await ProductsModel.findOne({id: id});
+
+        res.render('admin/form', {product: product});
+    }catch(err){
+        throw err;
+    }
+});
+
+router.post('/products/edit/:id', async (req, res) => {
     const {id} = req.params;
     const {name, price, description} = req.body;
     const query = {name, price, description};
 
-    ProductsModel.update({id: id}, {$set: query}, err => {
-        if(err) throw err;
+    try{
+        await ProductsModel.update({id: id}, {$set: query});
+
         res.redirect(`/admin/products/detail/${id}`);
-    });
+    }catch(err){
+        throw err;
+    }
 });
 
-router.get('/products/delete/:id', (req, res) => {
+router.get('/products/delete/:id', async (req, res) => {
     const {id} = req.params;
 
-    ProductsModel.remove({id: id}, err => {
-        if(err) throw err;
+    try{
+        await ProductsModel.remove({id: id});
+
         res.redirect('/admin/products');
-    });
+    }catch(err){
+        throw err;
+    }
 });
 
 router.post('/products/ajax_comment/insert', async (req, res) => {
     const {content, product_id} = req.body;
 
     try{
-
         const comment = new CommentsModel({content, product_id: parseInt(product_id)});
         const data = await comment.save();
 
