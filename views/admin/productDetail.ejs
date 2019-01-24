@@ -12,6 +12,9 @@
             <%= product.getDate.day %>
         </div>
 
+        <%if(product.thumbnail){%>
+            <img src="/uploads/<%=product.thumbnail%>" alt="#" style="max-width:100%" />
+        <%}%>
         <%= product.description %>
 
         <hr />

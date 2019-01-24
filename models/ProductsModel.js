@@ -3,13 +3,18 @@ const Schema = mongoose.Schema;
 const {autoIncrement} = require('mongoose-plugin-autoinc');
 
 const ProductsSchema = new Schema({
-    name: String,
+    name: {
+        type: String,
+        required: [true, '제목을 입력해 주세요.']
+    },
+    thumbnail: String,
     price: Number,
     description: String,
     created_at: {
         type: Date,
         default: Date.now()
-    }
+    },
+    username: String
 });
 
 ProductsSchema.virtual('getDate').get(function(){

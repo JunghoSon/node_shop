@@ -1,7 +1,27 @@
 const express = require('express');
 const router = express.Router();
+
 const ProductsModel = require('../models/ProductsModel');
 const CommentsModel = require('../models/CommentsModel');
+
+const csrf = require('csurf');
+const csrfProtection = csrf({cookie: true});
+
+const fs = require('fs');
+const path = require('path');
+const uploadDir = path.join(__dirname, '../uploads');
+const multer = require('multer');
+const storage = multer.diskStorage({
+    destination: (req, file, callback) => {
+        callback(null, uploadDir);
+    },
+    filename: (req, file, callback) => {
+        callback(null, `products-${Date.now()}.${file.mimetype.split('/')[1]}`);
+    }
+});
+const upload = multer({storage: storage});
+
+const loginRequired = require('../libs/loginRequired');
 
 router.get('/', (req, res) => {
     res.send('admin page');
@@ -17,21 +37,25 @@ router.get('/products', async (req, res) => {
     }
 });
 
-router.get('/products/write', (req, res) => {
-    res.render('admin/form', {product: {}});
+router.get('/products/write', loginRequired, csrfProtection, (req, res) => {
+    res.render('admin/form', {product: {}, csrfToken: req.csrfToken()});
 });
 
-router.post('/products/write', async (req, res) => {
+router.post('/products/write', loginRequired, upload.single('thumbnail'), csrfProtection, async (req, res) => {
     const {name, price, description} = req.body;
 
     try{
         const product = new ProductsModel({
-            name, price, description
+            name, price, description,
+            thumbnail: req.file ? req.file.filename : '',
+            username: req.user.username
         });
 
-        await product.save();
+        if(!product.validateSync()){
+            await product.save();
 
-        res.redirect('/admin/products');
+            res.redirect('/admin/products');
+        }
     }catch(err){
         throw err;
     }
@@ -50,27 +74,41 @@ router.get('/products/detail/:id', async (req, res) => {
     }
 });
 
-router.get('/products/edit/:id', async (req, res) => {
+router.get('/products/edit/:id', loginRequired, csrfProtection, async (req, res) => {
     const {id} = req.params;
 
     try{
         const product = await ProductsModel.findOne({id: id});
 
-        res.render('admin/form', {product: product});
+        res.render('admin/form', {product: product, csrfToken: req.csrfToken()});
     }catch(err){
         throw err;
     }
 });
 
-router.post('/products/edit/:id', async (req, res) => {
+router.post('/products/edit/:id', loginRequired, upload.single('thumbnail'), csrfProtection, async (req, res) => {
     const {id} = req.params;
     const {name, price, description} = req.body;
-    const query = {name, price, description};
 
     try{
-        await ProductsModel.update({id: id}, {$set: query});
+        const originalProduct = await ProductsModel.findOne({id: id});
 
-        res.redirect(`/admin/products/detail/${id}`);
+        if(req.file && originalProduct.thumbnail){
+            fs.unlinkSync(`${uploadDir}/${originalProduct.thumbnail}`);
+        }
+
+        const query = {
+            name, price, description,
+            thumbnail: req.file ? req.file.filename : originalProduct.thumbnail
+        };
+
+        const product = new ProductsModel(query);
+
+        if(!product.validateSync()){
+            const product = await ProductsModel.update({id: id}, {$set: query});
+
+            res.redirect(`/admin/products/detail/${id}`);
+        }
     }catch(err){
         throw err;
     }
@@ -100,7 +138,7 @@ router.post('/products/ajax_comment/insert', async (req, res) => {
             content: data.content,
             id: data.id
         });
-    }catch(e){
+    }catch(err){
         throw err;
     }
 });
