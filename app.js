@@ -7,6 +7,7 @@ const cookieParser = require('cookie-parser');
 const session = require('express-session');
 const passport = require('passport');
 const flash = require('connect-flash');
+const connectMongo = require('connect-mongo');
 
 const admin = require('./routes/admin');
 const accounts = require('./routes/accounts');
@@ -35,14 +36,30 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: false}));
 app.use(cookieParser());
 app.use('/uploads', express.static('uploads'));
-app.use(session({
+// app.use(session({
+//     secret: 'fastcampus',
+//     resave: false,
+//     saveUninitialized: true,
+//     cookie: {
+//         maxAge: 2000 * 60 * 60
+//     }
+// }));
+
+const MongoStore = connectMongo(session);
+const sessionMiddleware = session({
     secret: 'fastcampus',
     resave: false,
     saveUninitialized: true,
     cookie: {
         maxAge: 2000 * 60 * 60
-    }
-}));
+    },
+    store: new MongoStore({
+        mongooseConnection: mongoose.connection,
+        ttl: 14 * 24 * 60 * 60
+    })
+});
+app.use(sessionMiddleware);
+
 app.use(passport.initialize());
 app.use(passport.session());
 app.use(flash());
@@ -62,7 +79,13 @@ app.use('/auth', auth);
 app.use('/', home);
 app.use('/chat', chat);
 
-app.listen(port, () => {
+const server = app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
 });
 
+const listen = require('socket.io');
+const io = listen(server);
+io.use((socket, next) => {
+    sessionMiddleware(socket.request, socket.request.res, next);
+});
+require('./libs/socketConnection')(io);

@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
+const loginRequired = require('../libs/loginRequired');
 
-router.get('/', (req, res) => {
+router.get('/', loginRequired, (req, res) => {
     res.render('chat/index');
 });
 

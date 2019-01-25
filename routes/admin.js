@@ -1,4 +1,5 @@
 const express = require('express');
+const paginate = require('express-paginate');
 const router = express.Router();
 
 const ProductsModel = require('../models/ProductsModel');
@@ -27,11 +28,17 @@ router.get('/', (req, res) => {
     res.send('admin page');
 });
 
-router.get('/products', async (req, res) => {
+router.get('/products', paginate.middleware(5, 50), async (req, res) => { //한번에 보여줄 리스트 갯수, 한번에 보여줄 리스트 최대 갯수
     try{
-        const results = await ProductsModel.find({});
+        const [results, itemCount] = await Promise.all([
+            ProductsModel.find().sort({id: -1}).limit(req.query.limit).skip(req.skip).exec(),
+            ProductsModel.count({})
+        ]);
 
-        res.render('admin/products', {products: results});
+        const pageCount = Math.ceil(itemCount/req.query.limit);
+        const pages = paginate.getArrayPages(req)(2, pageCount, req.query.page); //한 화면에 보여줄 페이지 갯수, 총 페이지 수, 현재 페이지
+
+        res.render('admin/products', {products: results, pages, pageCount});
     }catch(err){
         throw err;
     }
@@ -52,6 +59,7 @@ router.post('/products/write', loginRequired, upload.single('thumbnail'), csrfPr
         });
 
         if(!product.validateSync()){
+            console.log(Date.now());
             await product.save();
 
             res.redirect('/admin/products');
@@ -73,6 +81,41 @@ router.get('/products/detail/:id', async (req, res) => {
         throw err;
     }
 });
+
+// const co = require('co');
+//
+// router.get('/products/detail/:id', async (req, res) => {
+//     const {id} = req.params;
+//
+//     const getData = co(function* (){
+//         const product = yield ProductsModel.findOne({id: id});
+//         const comments = yield CommentsModel.find({product_id: id});
+//
+//         return {
+//             product: product,
+//             comments: comments
+//         }
+//     });
+//
+//     getData.then(result => {
+//         res.render('admin/productDetail', {product: result.product, comments: result.comments});
+//     });
+// });
+
+// router.get('/products/detail/:id', async (req, res) => {
+//     const {id} = req.params;
+//
+//     const getData = co(function* (){
+//         return {
+//             product: yield ProductsModel.findOne({id: id}),
+//             comments: yield CommentsModel.find({product_id: id})
+//         }
+//     });
+//
+//     getData.then(result => {
+//         res.render('admin/productDetail', {product: result.product, comments: result.comments});
+//     });
+// });
 
 router.get('/products/edit/:id', loginRequired, csrfProtection, async (req, res) => {
     const {id} = req.params;
