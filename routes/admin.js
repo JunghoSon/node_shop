@@ -4,6 +4,7 @@ const router = express.Router();
 
 const ProductsModel = require('../models/ProductsModel');
 const CommentsModel = require('../models/CommentsModel');
+const CheckoutModel = require('../models/CheckoutModel');
 
 const csrf = require('csurf');
 const csrfProtection = csrf({cookie: true});
@@ -22,7 +23,9 @@ const storage = multer.diskStorage({
 });
 const upload = multer({storage: storage});
 
-const loginRequired = require('../libs/loginRequired');
+//const adminRequired = require('../libs/adminRequired');
+
+const adminRequired = require('../libs/adminRequired');
 
 router.get('/', (req, res) => {
     res.send('admin page');
@@ -44,11 +47,11 @@ router.get('/products', paginate.middleware(5, 50), async (req, res) => { //한�
     }
 });
 
-router.get('/products/write', loginRequired, csrfProtection, (req, res) => {
+router.get('/products/write', adminRequired, csrfProtection, (req, res) => {
     res.render('admin/form', {product: {}, csrfToken: req.csrfToken()});
 });
 
-router.post('/products/write', loginRequired, upload.single('thumbnail'), csrfProtection, async (req, res) => {
+router.post('/products/write', adminRequired, upload.single('thumbnail'), csrfProtection, async (req, res) => {
     const {name, price, description} = req.body;
 
     try{
@@ -117,7 +120,7 @@ router.get('/products/detail/:id', async (req, res) => {
 //     });
 // });
 
-router.get('/products/edit/:id', loginRequired, csrfProtection, async (req, res) => {
+router.get('/products/edit/:id', adminRequired, csrfProtection, async (req, res) => {
     const {id} = req.params;
 
     try{
@@ -129,7 +132,7 @@ router.get('/products/edit/:id', loginRequired, csrfProtection, async (req, res)
     }
 });
 
-router.post('/products/edit/:id', loginRequired, upload.single('thumbnail'), csrfProtection, async (req, res) => {
+router.post('/products/edit/:id', adminRequired, upload.single('thumbnail'), csrfProtection, async (req, res) => {
     const {id} = req.params;
     const {name, price, description} = req.body;
 
@@ -197,6 +200,64 @@ router.post('/products/ajax_comment/delete', async (req, res) => {
     }catch(err){
         throw err;
     }
+});
+
+router.get('/order',  async (req, res) => {
+    try{
+        const orderList = await CheckoutModel.find();
+
+        res.render('admin/orderList', {orderList: orderList});
+    }catch(err){
+        throw err;
+    }
+});
+
+router.get('/order/edit/:id', async (req, res) => {
+    try{
+        const order = await CheckoutModel.findOne({id: req.params.id});
+
+        res.render('admin/orderForm', {order: order});
+    }catch(err){
+        throw err;
+    }
+});
+
+router.get('/statistics', adminRequired, async (req, res) => {
+    const barData = [];
+    const pieData = [];
+
+    try{
+        const orderList = await CheckoutModel.find();
+
+        orderList.forEach(order => {
+            const date = new Date(order.created_at);
+            const monthDay = `${date.getMonth() + 1}-${date.getDate()}`;
+
+            if(monthDay in barData){
+                barData[monthDay]++;
+            }else{
+                barData[monthDay] = 1;
+            }
+
+            if(order.status in pieData){
+                pieData[order.status]++;
+            }else{
+                pieData[order.status] = 1;
+            }
+        });
+
+
+        barData['11-1'] = 20;
+        barData['11-2'] = 10;
+        pieData['결제 완료'] = 10;
+        pieData['결제 대기'] = 7;
+
+        res.render('admin/statistics', {barData: barData, pieData: pieData});
+    }catch(err){
+        throw err;
+    }
+
+
 });
 
 module.exports = router;

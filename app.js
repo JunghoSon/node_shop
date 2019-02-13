@@ -14,6 +14,9 @@ const accounts = require('./routes/accounts');
 const auth = require('./routes/auth');
 const home = require('./routes/home');
 const chat = require('./routes/chat');
+const products = require('./routes/products');
+const cart = require('./routes/cart');
+const checkout = require('./routes/checkout');
 
 const db = mongoose.connection;
 mongoose.Promise = global.Promise;
@@ -36,6 +39,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: false}));
 app.use(cookieParser());
 app.use('/uploads', express.static('uploads'));
+app.use('/static', express.static('static'));
 // app.use(session({
 //     secret: 'fastcampus',
 //     resave: false,
@@ -66,6 +70,7 @@ app.use(flash());
 
 app.use((req, res, next) => {
     app.locals.isLogin = req.isAuthenticated();
+    app.locals.userData = req.user;
     next();
 });
 
@@ -78,6 +83,9 @@ app.use('/accounts', accounts);
 app.use('/auth', auth);
 app.use('/', home);
 app.use('/chat', chat);
+app.use('/products', products);
+app.use('/cart', cart);
+app.use('/checkout', checkout);
 
 const server = app.listen(port, () => {
     console.log(`Server is running on port ${port}`);

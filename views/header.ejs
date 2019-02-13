@@ -9,6 +9,7 @@
     <!--폰트어섬추가 -->
     <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
     <!--폰트어섬추가 -->
+    <script src="/static/common.js"></script>
     <script
             src="https://code.jquery.com/jquery-3.3.1.min.js"
             integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
@@ -34,8 +35,11 @@
                         <li class="active">
                             <a href="/">Home</a>
                         </li>
+                        <%if(typeof userData !== 'undefined' && userData.username === 'admin'){%>
                         <li><a href="/admin/products">ADMIN</a></li>
+                        <%}%>
                         <li><a href="/chat">CHAT</a></li>
+                        <li><a href="/cart">CART</a></li>
                         <% if(isLogin){%>
                         <li><a href="/accounts/logout" onclick="return confirm('로그아웃 하시겠습니까?')">LOGOUT</a></li>
                         <%}else{%>
